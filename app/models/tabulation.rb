@@ -1,0 +1,2 @@
+class Tabulation < ApplicationRecord
+end
