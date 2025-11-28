@@ -1,24 +1,8 @@
-# README
+## アプリ概要
+簡単な投票アプリ
+## 機能候補
+指定した数以下の数値から、ランダムで一つ選ぶ機能
+## 技術選定
+- 主要フレームワーク：Rails
+- デプロイ：render
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
-
-Things you may want to cover:
-
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
