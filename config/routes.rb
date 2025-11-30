@@ -1,7 +1,9 @@
 Rails.application.routes.draw do
-  get "diagnoses/start"
-  get "diagnoses/questions"
-  get "diagnoses/result"
+  resources :users, only: [:new, :create, :destroy]
+  get 'login',to: 'user_sessions#new'
+  post 'login', to: 'user_sessions#create'
+  delete 'logout', to: 'user_sessions#destroy'
+  resources :diagnoses, only: [:start, :questions, :result]
   root "diagnoses#start"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
