@@ -18,6 +18,10 @@
   </head>
 
   <body>
-    <%= yield %>
+    <%= render 'shared/header' %>
+    <%= render 'shared/flash_messages' %>
+    <main>
+      <%= yield %>
+    </main>
   </body>
 </html>

@@ -25,8 +25,13 @@ services:
       - .:/myapp
       - bundle_data:/usr/local/bundle:cached
       - node_modules:/myapp/node_modules
+    env_file:
+      - .env
     environment:
       TZ: Asia/Tokyo
+      DATABASE_HOST: db
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD : password
     ports:
       - "3000:3000"
     depends_on:
