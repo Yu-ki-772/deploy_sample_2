@@ -1,0 +1,33 @@
+<div class="container">
+  <h1>診断結果</h1>
+
+  <div class="diagnosis-info">
+    <p><strong>レベル：</strong> <%= @diagnosis.is_beginner ? '初心者' : '経験者' %></p>
+    <p><strong>部位:</strong> <%= @diagnosis.body_part %></p>
+    <p><strong>目的:</strong> <%= @diagnosis.purpose %></p>
+  </div>
+
+  <div class="recommended-exercises">
+    <h2>おすすめの種目</h2>
+    <ul>
+      <li><%= @recommendation['exercises'] %></li>
+    </ul>
+  </div>
+
+  <div class="workout-details">
+    <h3>トレーニング内容</h3>
+    <p><strong>ペース:</strong> <%= @recommendation['pace'] %></p>
+    <p><strong>回数:</strong> <%= @recommendation['reps'] %></p>
+    <p><strong>セット数:</strong> <%= @recommendation['sets'] %></p>
+    <p><strong>休憩時間:</strong> <%= @recommendation['rest'] %></p>
+  </div>
+
+  <div class="tips">
+    <h3>アドバイス</h3>
+    <ul>
+      <li><%= @recommendation['tips'] %></li>
+    </ul>
+  </div>
+  <%= link_to 'もう一度診断', new_diagnosis_path, class: 'btn btn-primary' %>
+  <%= link_to '診断履歴', diagnoses_path, class: 'btn btn-secondary' %>
+</div>

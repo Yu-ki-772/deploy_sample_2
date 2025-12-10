@@ -1,0 +1,41 @@
+<div class="container">
+  <h1>診断結果一覧</h1>
+
+  <% @diagnoses.each do |diagnosis| %>
+    <div class="diagnosis-card">
+      <h2>診断日：<%= diagnosis.created_at.strftime("%Y/%m/%d") %></h2>
+
+      <div class="diagnosis-info">
+        <p><strong>レベル：</strong> <%= diagnosis.is_beginner ? '初心者' : '経験者' %></p>
+        <p><strong>部位:</strong> <%= diagnosis.body_part %></p>
+        <p><strong>目的:</strong> <%= diagnosis.purpose %></p>
+      </div>
+
+      <div class="recommended-exercises">
+        <h3>おすすめの種目</h3>
+        <ul>
+          <li><%= diagnosis.recommendation['exercises'] %></li>
+        </ul>
+      </div>
+
+      <div class="workout-details">
+        <h3>トレーニング内容</h3>
+        <p><strong>ペース:</strong> <%= diagnosis.recommendation['pace'] %></p>
+        <p><strong>回数:</strong> <%= diagnosis.recommendation['reps'] %></p>
+        <p><strong>セット数:</strong> <%= diagnosis.recommendation['sets'] %></p>
+        <p><strong>休憩時間:</strong> <%= diagnosis.recommendation['rest'] %></p>
+      </div>
+
+      <div class="tips">
+        <h3>アドバイス</h3>
+        <ul>
+          <li><%= diagnosis.recommendation['tips'] %></li>
+        </ul>
+      </div>
+
+      <%= link_to '詳細を見る', diagnosis_path(diagnosis), class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+
+  <%= link_to '新しく診断する', new_diagnosis_path, class: 'btn btn-success mt-3' %>
+</div>

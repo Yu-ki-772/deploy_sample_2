@@ -1,2 +1,0 @@
-class Tabulation < ApplicationRecord
-end

@@ -1,0 +1,33 @@
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">おすすめ自重筋トレ診断</h1>
+    <span class="text-danger small">※診断前にログインしてください</span>
+  </div>
+
+  <%= form_with model: @diagnosis, local: true do |f| %>
+    <%= render 'shared/error_messages', object: @diagnosis %>
+
+    <div class="form-group">
+      <%= f.label :is_beginner, '筋トレ経験' %>
+      <%= f.select :is_beginner, 
+          [['初心者', true], ['経験者', false]], 
+          { prompt: '選択してください' },
+          class: 'form-control' %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :body_part, '鍛えたい部位' %>
+      <%= f.select :body_part, Workout::BODY_PARTS, { prompt: '選択してください' }, class: 'form-control' %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :purpose, '目的' %>
+      <%= f.select :purpose, 
+          Workout::PURPOSES, 
+          { prompt: '選択してください' },
+          class: 'form-control' %>
+    </div>
+
+    <%= f.submit '診断する', class: 'btn btn-primary' %>
+  <% end %>
+</div>
