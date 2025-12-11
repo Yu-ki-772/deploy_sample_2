@@ -1,11 +1,22 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+set -euo pipefail
 
-if gem list --no-installed --exact --silent foreman; then
-  echo "Installing foreman..."
-  gem install foreman
-fi
-
-# Default to port 3000 if not specified
 export PORT="${PORT:-3000}"
 
-exec foreman start -f Procfile.dev --env /dev/null "$@"
+# 1) 可能なら bundle exec foreman を使う（Gemfile 管理下の foreman を優先）
+if command -v bundle >/dev/null 2>&1 && bundle exec foreman -v >/dev/null 2>&1; then
+  exec bundle exec foreman start -f Procfile.dev --env /dev/null "$@"
+fi
+
+# 2) 次に PATH にある foreman（システムインストール）を試す
+if command -v foreman >/dev/null 2>&1; then
+  exec foreman start -f Procfile.dev --env /dev/null "$@"
+fi
+
+# 3) どちらも使えない場合はエラーメッセージを出して終了
+cat >&2 <<'ERR'
+foreman not found.
+Add `gem "foreman"` to the :development group in your Gemfile and run `bundle install`,
+or install foreman system-wide (e.g. `gem install foreman`) in your development image.
+ERR
+exit 1

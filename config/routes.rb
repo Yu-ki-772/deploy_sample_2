@@ -3,6 +3,8 @@ Rails.application.routes.draw do
   get 'login',to: 'user_sessions#new'
   post 'login', to: 'user_sessions#create'
   delete 'logout', to: 'user_sessions#destroy'
+  resources :devices, only: [:create, :destroy]
+  post "/test_push/:player_id", to: "push#test" # テスト用エンドポイント
   resources :diagnoses, only: [:new, :create, :show, :index]
   root "diagnoses#new"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

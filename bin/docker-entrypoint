@@ -1,13 +1,113 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Enable jemalloc for reduced memory usage and latency.
+# ---- preserve jemalloc preload from original script ----
 if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
   export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
 fi
 
-# If running the rails server then create or migrate existing database
-if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
-  ./bin/rails db:prepare
+# ---- Config (can override with env) ----
+APP_DIR=${APP_DIR:-$(pwd)}
+MAX_RETRIES=${DB_WAIT_MAX_RETRIES:-30}
+SLEEP_SEC=${DB_WAIT_SLEEP_SEC:-2}
+LOCK_KEY=${MIGRATION_ADVISORY_LOCK_KEY:-1234567890}
+SKIP_ASSETS=${SKIP_ASSETS:-false}
+MIGRATE=${MIGRATE:-true}
+
+cd "$APP_DIR" || exit 1
+
+echo "=== docker-entrypoint start (APP_DIR=$APP_DIR) ==="
+echo "RAILS_ENV=${RAILS_ENV:-development}"
+
+# remove stale pids
+if [ -f tmp/pids/server.pid ]; then
+  echo "Removing stale server.pid"
+  rm -f tmp/pids/server.pid
 fi
 
-exec "${@}"
+# ---- Wait for DB readiness ----
+echo "Waiting for database to become available..."
+i=0
+while true; do
+  if command -v psql >/dev/null 2>&1; then
+    if [ -n "${DATABASE_URL:-}" ]; then
+      if psql "$DATABASE_URL" -c '\q' >/dev/null 2>&1; then
+        break
+      fi
+    else
+      PGHOST=${PGHOST:-${DATABASE_HOST:-localhost}}
+      PGUSER=${PGUSER:-${DATABASE_USER:-postgres}}
+      PGPASSWORD=${PGPASSWORD:-${DATABASE_PASSWORD:-}}
+      PGDATABASE=${PGDATABASE:-${DATABASE_NAME:-postgres}}
+      if PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE" -c '\q' >/dev/null 2>&1; then
+        break
+      fi
+    fi
+  else
+    # If psql not available, try rails check (slower)
+    if bundle exec rails db:version >/dev/null 2>&1; then
+      break
+    fi
+  fi
+
+  i=$((i + 1))
+  if [ $i -ge $MAX_RETRIES ]; then
+    echo "Timed out waiting for DB after $((MAX_RETRIES * SLEEP_SEC)) seconds"
+    exit 1
+  fi
+  echo "DB not ready yet. Retrying (${i}/${MAX_RETRIES})..."
+  sleep $SLEEP_SEC
+done
+echo "Database ready."
+
+# ---- If starting rails server, keep original behavior: db:prepare ----
+if [ "${1:-}" = "./bin/rails" ] && [ "${2:-}" = "server" ]; then
+  echo "Detected rails server start. Running ./bin/rails db:prepare (original behaviour)..."
+  ./bin/rails db:prepare
+else
+  # For other commands, optionally run migrations with advisory lock if MIGRATE != false
+  if [ "${MIGRATE}" != "false" ]; then
+    echo "Attempting to run migrations with advisory lock (key=${LOCK_KEY})..."
+    if command -v psql >/dev/null 2>&1 && [ -n "${DATABASE_URL:-}" ]; then
+      if psql "$DATABASE_URL" -tAc "SELECT pg_try_advisory_lock(${LOCK_KEY});" | grep -q 't'; then
+        echo "Lock acquired -> running migrations..."
+        bundle exec rails db:migrate
+        echo "Releasing migration lock..."
+        psql "$DATABASE_URL" -c "SELECT pg_advisory_unlock(${LOCK_KEY});" >/dev/null 2>&1 || true
+      else
+        echo "Another process is migrating. Skipping migrations here."
+      fi
+    else
+      echo "psql or DATABASE_URL not available -> running migrations without advisory lock"
+      bundle exec rails db:migrate
+    fi
+  else
+    echo "MIGRATE=false -> skipping migrations"
+  fi
+fi
+
+# ---- Conditional assets precompile for production when needed ----
+if [ "${RAILS_ENV:-development}" = "production" ] && [ "${SKIP_ASSETS}" != "true" ]; then
+  # Detect existing assets
+  ASSETS_PRESENT=false
+  if [ -f "public/assets/manifest.json" ] || [ -f "public/packs/manifest.json" ] || ls public/assets 2>/dev/null | grep -q .; then
+    ASSETS_PRESENT=true
+  fi
+
+  if [ "$ASSETS_PRESENT" = false ]; then
+    # Only precompile when starting web server (avoid precompile for sidekiq worker)
+    CMD_STR="$(printf '%s ' "$@")"
+    if echo "$CMD_STR" | grep -Eq 'puma|rails|passenger|unicorn'; then
+      echo "Assets not found and starting web server -> running assets:precompile..."
+      bundle exec rails assets:precompile
+    else
+      echo "Assets not found but not starting web server -> skipping assets precompile"
+    fi
+  else
+    echo "Assets already present, skipping precompile."
+  fi
+fi
+
+# ---- Execute the original command ----
+echo "Executing: $*"
+exec "$@"

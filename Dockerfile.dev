@@ -1,26 +1,51 @@
-# 今回使うDockerの参照元のイメージ
 FROM ruby:3.3.6
 
-# なんやかんやおまじない
 ENV LANG C.UTF-8
-ENV TZ Asia/Tokyo
+ENV TZ=Asia/Tokyo
+ENV DEBIAN_FRONTEND=noninteractive
 
-# node.jsやらyarnやらなんやらをシステム全体にインストール
 RUN apt-get update -qq \
-&& apt-get install -y ca-certificates curl gnupg \
-&& mkdir -p /etc/apt/keyrings \
-&& curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-&& NODE_MAJOR=20 \
-&& echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
-&& wget --quiet -O - /tmp/pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-&& echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update -qq && apt-get install -y build-essential libpq-dev nodejs yarn vim
+  && apt-get install -y --no-install-recommends \
+     ca-certificates curl gnupg build-essential libpq-dev wget git vim \
+     lsb-release gnupg2 \
+  && mkdir -p /etc/apt/keyrings \
+  && rm -rf /var/lib/apt/lists/*
 
-# ディレクトリを作成してそれを作業ディレクトリ（Dockerが操作するディレクトリ）に設定
-RUN mkdir /myapp
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get update -qq \
+  && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable \
+  && corepack prepare yarn@1.22.22 --activate || \
+     (npm install -g yarn@1.22.22 && true)
+
 WORKDIR /myapp
-RUN gem install bundler
 
-# Dockerfileが存在するディレクトリ内（コンテナの外。今回の場合はRailsのアプリがあるディレクトリ）
-# にあるすべてのファイルとサブディレクトリをコンテナ内の/myappにコピー
+# Bundler を最新化
+RUN gem install bundler --no-document
+
+# ---- Node / Yarn 関連：先に package.json をコピーしてインストール（キャッシュ有効化）
+COPY package.json yarn.lock ./
+
+# node_modules/.bin を PATH に加えておく（Procfile で直接 'esbuild' を呼んでいる場合に必要）
+ENV PATH=/myapp/node_modules/.bin:$PATH
+
+# yarn install（ロックファイルがある想定）
+RUN yarn install --frozen-lockfile --network-timeout 600000 || yarn install
+
+# ---- Ruby gems：先に Gemfile をコピーして bundle install（キャッシュ効く）
+COPY Gemfile Gemfile.lock ./
+
+ENV BUNDLE_JOBS=4 \
+    BUNDLE_PATH=/gems \
+    BUNDLE_APP_CONFIG=/gems/.bundle
+
+RUN bundle config set without 'production' \
+  && bundle install --jobs 4 --retry 3
+
+# アプリソースを最後にコピー
 COPY . /myapp
+
+# 任意：デフォルトコマンド（必要なら有効化）
+# CMD ["bin/dev"]
