@@ -80,7 +80,7 @@ GEM
     benchmark (0.4.1)
     bigdecimal (3.3.1)
     bindex (0.8.1)
-    bootsnap (1.18.6)
+    bootsnap (1.19.0)
       msgpack (~> 1.2)
     brakeman (7.1.0)
       racc
@@ -112,6 +112,8 @@ GEM
       logger
     faraday-net_http (3.4.2)
       net-http (~> 0.5)
+    foreman (0.90.0)
+      thor (~> 1.4)
     globalid (1.3.0)
       activesupport (>= 6.1)
     hashie (5.0.0)
@@ -209,6 +211,9 @@ GEM
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.1.18)
+    rack-cors (3.0.0)
+      logger
+      rack (>= 3.0.14)
     rack-session (2.1.1)
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
@@ -251,6 +256,8 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
+    redis-client (0.26.2)
+      connection_pool
     regexp_parser (2.11.3)
     reline (0.6.2)
       io-console (~> 0.5)
@@ -292,6 +299,12 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
+    sidekiq (7.3.9)
+      base64
+      connection_pool (>= 2.3.0)
+      logger
+      rack (>= 2.2.4)
+      redis-client (>= 0.22.2)
     snaky_hash (2.0.3)
       hashie (>= 0.1.0, < 6)
       version_gem (>= 1.1.8, < 3)
@@ -351,18 +364,22 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  bootsnap
+  bootsnap (>= 1.11)
   brakeman
   capybara
   cssbundling-rails
   debug
+  foreman
   jbuilder
   jsbundling-rails
   pg (~> 1.1)
   puma (>= 5.0)
+  rack-cors
   rails (~> 7.2.1)
+  redis-client (~> 0.20)
   rubocop-rails-omakase
   selenium-webdriver
+  sidekiq (~> 7.2)
   sorcery (= 0.16.3)
   sprockets-rails
   stimulus-rails

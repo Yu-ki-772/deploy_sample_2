@@ -1,24 +1,37 @@
+version: "3.8"
+
 services:
   db:
-    image: postgres
+    image: postgres:14
     restart: always
     environment:
-      TZ: Asia/Tokyo
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: myapp_development
+      TZ: Asia/Tokyo
     volumes:
       - postgresql_data:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d myapp_development -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   web:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bash -c "bundle install && bundle exec rails db:prepare && rm -f tmp/pids/server.pid && ./bin/dev"
+    command: bash -lc "bundle install && bin/rails db:create db:migrate && rm -f tmp/pids/server.pid && bin/dev"
     tty: true
     stdin_open: true
     volumes:
@@ -31,13 +44,37 @@ services:
       TZ: Asia/Tokyo
       DATABASE_HOST: db
       DATABASE_USER: postgres
-      DATABASE_PASSWORD : password
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: myapp_development
+      REDIS_URL: "redis://redis:6379/0"
     ports:
       - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    volumes:
+      - .:/myapp
+      - bundle_data:/usr/local/bundle:cached
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Tokyo
+      DATABASE_URL: "postgresql://postgres:password@db:5432/myapp_development"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      - db
+      - redis
+
 volumes:
   bundle_data:
   postgresql_data:
   node_modules:
+  redis_data:
