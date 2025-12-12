@@ -20,7 +20,7 @@ gem "cssbundling-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 # Use Redis adapter to run Action Cable in production
-gem "sidekiq", "~> 7.2"
+gem "sidekiq", "~> 8.1"
 # gem "redis-client", "~> 0.20"
 gem "redis", ">= 4.0.1"
 
