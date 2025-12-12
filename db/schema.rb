@@ -10,12 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_10_072809) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_12_062658) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "devices", force: :cascade do |t|
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.string "player_id", null: false
     t.string "device_type"
     t.datetime "created_at", null: false
