@@ -2,7 +2,7 @@ require 'net/http'
 require 'uri'
 require 'json'
 
-class OneSignalClient
+class OnesignalClient
   class Error < StandardError; end
 
   def self.create_notification(payload)
